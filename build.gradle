@@ -1,0 +1,48 @@
+apply plugin: 'java-gradle-plugin'
+apply plugin: 'idea'
+apply plugin: 'groovy'
+apply plugin: 'maven'
+apply plugin: 'maven-publish'
+
+
+// Project information
+group = "ch.epfl.k2sjs"
+version = "0.1-SNAPSHOT"
+
+// Scala settings
+String scalaVersion = project.hasProperty('scalaVersion') ? project.property('scalaVersion') : '2.12'
+String subVersion = project.hasProperty('subVersion') ? project.property('subVersion') : '1'
+String scalaFullVersion = scalaVersion + '.' + subVersion
+String scalaJSVersion = project.hasProperty('scalaJSVersion') ? project.property('scalaJSVersion') : '1.0.0-M1'
+String k2sjsCompilerVersion = project.hasProperty('k2sjsCompilerVersion') ? project.property('k2sjsCompilerVersion') : '0.1-SNAPSHOT'
+
+// General build configuration not needed for now
+// See : https://plugins.gradle.org/plugin/de.fuerstenau.buildconfig
+
+gradlePlugin {
+    pluginSourceSet project.sourceSets.main
+    plugins {
+        k2sjsCompilerPlugin {
+            id = "kotlin2sjs"
+            implementationClass = "ch.epfl.k2sjs.K2SJSCompilerPlugin"
+        }
+    }
+}
+
+repositories {
+    mavenCentral()
+    mavenLocal()
+}
+
+dependencies {
+    compile gradleApi()
+    compile localGroovy()
+    compile group: 'org.scala-js', name: 'scalajs-cli_' + scalaVersion, version: scalaJSVersion
+    compile group: 'ch.epfl.k2sjs', name: 'kotlin-scalajs_' + scalaVersion, version: k2sjsCompilerVersion
+}
+
+publishing {
+    repositories {
+        mavenLocal()
+    }
+}
