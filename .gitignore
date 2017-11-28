@@ -2,6 +2,7 @@
 .gradle/
 .idea/
 build/
+out/
 *.iml
 example-project/build
 example-project/.gradle
