@@ -13,7 +13,7 @@ version = "0.1-SNAPSHOT"
 String scalaVersion = project.hasProperty('scalaVersion') ? project.property('scalaVersion') : '2.12'
 String subVersion = project.hasProperty('subVersion') ? project.property('subVersion') : '1'
 String scalaFullVersion = scalaVersion + '.' + subVersion
-String scalaJSVersion = project.hasProperty('scalaJSVersion') ? project.property('scalaJSVersion') : '1.0.0-M1'
+String scalaJSVersion = project.hasProperty('scalaJSVersion') ? project.property('scalaJSVersion') : '1.0.0-M2'
 String k2sjsCompilerVersion = project.hasProperty('k2sjsCompilerVersion') ? project.property('k2sjsCompilerVersion') : '0.1-SNAPSHOT'
 
 // General build configuration not needed for now

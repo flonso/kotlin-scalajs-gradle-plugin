@@ -14,6 +14,13 @@ buildscript {
 
 apply plugin: "kotlin2sjs"
 
+k2sjs {
+    kotlinHome = "/home/florian/.sdkman/candidates/kotlin/1.1.51/"
+    scalaJsLib = "/home/florian/Desktop/EPFL/Master/semester_project/Kotlin-Scala.js/src/test/resources/lib"
+    compilerOptions = "-verbose -Xallow-kotlin-package"
+}
+
+
 sourceSets {
     main {
         kotlin {

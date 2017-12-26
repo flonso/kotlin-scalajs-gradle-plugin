@@ -2,84 +2,164 @@ package ch.epfl.k2sjs.tasks
 
 import ch.epfl.k2sjsir.K2SJSIRCompiler
 import org.gradle.api.GradleException
+import org.gradle.api.file.Directory
 import org.jetbrains.kotlin.cli.common.ExitCode
-import org.jetbrains.kotlin.cli.js.K2JSCompiler
 import org.scalajs.cli.Scalajsld
 
 import org.gradle.api.DefaultTask
-import org.gradle.api.file.FileCollection
-import org.gradle.api.tasks.InputFiles
 import org.gradle.api.tasks.OutputFile
+import org.gradle.api.tasks.*
 import org.gradle.api.tasks.TaskAction
 
+/**
+ * TODO
+ * [] Offer to pass compiler options through the configuration of gradle
+ * [] Offer to pass sclajsld options throough the configuration of gradle
+ * [] Make it possible to run with gradle build instead of using a custom command
+ */
 
 public class CompileTask extends DefaultTask {
     final String description = "Converts all kotlin files to sjsir, then compiles them."
 
-    @InputFiles
-    public FileCollection srcFiles
+    final String scalaJsJar = "scalajs-library_2.12-1.0.0-M2.jar"
 
+    /**
+     * Where to put the generated .sjsir and .js files
+     */
+    @OutputDirectory
+    public Directory outputDir
+
+    /**
+     * The file to which the final JS code will be written
+     */
     @OutputFile
     public File dstFile
 
-    // Compiler options
-    private ROOT_LIB = "src/test/resources/lib"
-    private ROOT_OUT = "src/test/resources/out"
-    private ROOT_LIB_OUT = "src/test/resources/kotlin-out"
-    private SCALA_JS_VERSION = "1.0.0-M1"
-    private SCALA_JS_JAR = "scalajs-library_2.12-"+ SCALA_JS_VERSION +".jar"
-    private KOTLIN_HOME = scala.util.Properties.envOrElse("KOTLIN_HOME", "/usr/share/kotlin" )
+    /**
+     * The path to Kotlin install directory
+     */
+    private File kotlinHome
 
-    private String[] k2sjsOptions = ["-Xallow-kotlin-package"/*, "-d", ROOT_OUT*/, "-kotlin-home", KOTLIN_HOME, "-output", "output"]
+    File getKotlinHome() {
+        return this.kotlinHome
+    }
+
+    File setKotlinHome(String path) {
+        File tmp = new File(path)
+        assertFileExistsAndIsDirectory(tmp)
+        this.kotlinHome = tmp
+
+        return this.kotlinHome
+    }
+
+    /**
+     * The compiler still depends on the ScalaJS stdlib, this is
+     * the path to a jar.
+     */
+    private File scalaJsLib
+
+    File getScalaJsLib() {
+        return this.scalaJsLib
+    }
+
+    File setScalaJsLib(String path) {
+        File tmp = new File(path)
+        assertFileExistsAndIsDirectory(tmp)
+        this.scalaJsLib = tmp
+
+        return this.scalaJsLib
+    }
+
+    /**
+     * All other compiler options in the form of a String :
+     * -Xallow-kotlin-package, -d "
+     */
+    private String compilerOptions
+
+    String getCompilerOptions() {
+        return this.compilerOptions
+    }
+
+    String setCompilerOptions(String options) {
+        this.compilerOptions = options
+    }
+
+    /**
+     * Linker options as a string
+     */
+    private String linkerOptions
+
+    String getLinkerOptions() {
+        return this.linkerOptions
+    }
+
+    String setLinkerOptions(String options) {
+        this.linkerOptions = options
+    }
+
+    private static void assertFileExistsAndIsDirectory(File f) {
+        if (!f.exists() || !f.isDirectory())
+            throw new GradleException("ScalaJS stdlib jar file must exist and be a directory")
+    }
+
+    //private String[] k2sjsOptions = ["-verbose", "-Xallow-kotlin-package", "-d", ROOT_OUT /*, "-output", "output"*/]
 
     // Scalajsld options
-    private String[] linkerOptions = ["--stdlib", "$ROOT_LIB/$SCALA_JS_JAR", ROOT_OUT, ROOT_LIB_OUT, "-c"]
+    //private String[] linkerOptions = ["--stdlib", "lib/$SCALA_JS_JAR", ROOT_OUT, ROOT_LIB_OUT, "-c"]
 
     @TaskAction
     def run() {
-        ArrayList<String> args = new ArrayList<>()
+
+        if (dstFile == null)
+            throw new GradleException("Destination file must not be null")
+
+        ArrayList<String> compilerArgs = new ArrayList<>()
+        // Add user arguments
+        compilerArgs.add("-kotlin-home")
+        compilerArgs.add(getKotlinHome().getAbsolutePath())
+        compilerArgs.add("-d")
+        compilerArgs.add(outputDir.getAsFile().getAbsolutePath())
+        compilerArgs.add("-output")
+        compilerArgs.add(dstFile.getAbsolutePath())
+
+        if (getCompilerOptions() != "")
+            getCompilerOptions().split(" ").each { compilerArgs.add(it) }
+
         // Add source files
         project.sourceSets.main.kotlin.files.each {
-            args.add(it.getPath())
-        }
-        // Add user arguments
-        k2sjsOptions.each {
-            args.add(it)
+            compilerArgs.add(it.getPath())
         }
 
-        // Compile to sjsir
-        project.logger.info("Running the compiler...")
-        String[] tmp = args.toArray() as String[]
-        final output = (new K2SJSIRCompiler()).exec(System.err, tmp) // --> Abstract method exception
-        //final output = (new K2JSCompiler()).exec(System.err, tmp) //  --> Compile to JS nicely
+        project.logger.info("Running the compiler with arguments : $compilerArgs")
+
+        // Compile
+        String[] tmp = compilerArgs.toArray() as String[]
+        final output = (new K2SJSIRCompiler()).exec(System.err, tmp)
 
         if (ExitCode.OK != output) {
-            throw new GradleException("Compilation failed with exit code $output. See log for details.")
+            throw new GradleException("Compilation failed with exit code $output. See log above for details. (Use --info)")
         } else {
             project.logger.info("Compilation successful !")
         }
 
-        /*
-        args = new ArrayList<>()
-        linkerOptions.each {
-            args.add(it)
-        }
+        // Prepare linker options
+        ArrayList<String> linkerArgs = new ArrayList<>()
+        linkerArgs.add("--stdlib")
+        linkerArgs.add(getScalaJsLib().getAbsolutePath() + "/" + scalaJsJar)
+        linkerArgs.add("-o")
+        linkerArgs.add(dstFile.getAbsolutePath())
+        linkerArgs.add(outputDir.getAsFile().getAbsolutePath())
+        linkerArgs.add("-c")
+        linkerArgs.add("-u")
+        if (getLinkerOptions() != "")
+            linkerArgs.add(getLinkerOptions())
 
-        args.add("-o")
-        if (dstFile != null) {
-            args.add(dstFile.getAbsolutePath())
-        } else {
-            args.add(project.buildDir.getAbsolutePath() + "/" + project.name + ".js")
-        }
+        project.logger.info("Linker will be run with arguments $linkerArgs")
 
-        project.logger.info("Proceeding with the ScalaJS linker...")
-        tmp = args.toArray() as String[]
-        tmp.each {
-            project.logger.info(it)
-        }
+        project.logger.info("Running ScalaJS linker...")
+        tmp = linkerArgs.toArray() as String[]
         Scalajsld.main(tmp)
         project.logger.info("\nDone with the ScalaJS linker.")
-        */
     }
 
 }
