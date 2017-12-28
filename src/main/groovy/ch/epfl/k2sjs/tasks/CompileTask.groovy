@@ -3,6 +3,7 @@ package ch.epfl.k2sjs.tasks
 import ch.epfl.k2sjsir.K2SJSIRCompiler
 import org.gradle.api.GradleException
 import org.gradle.api.file.Directory
+import org.gradle.api.file.FileCollection
 import org.jetbrains.kotlin.cli.common.ExitCode
 import org.scalajs.cli.Scalajsld
 
@@ -11,22 +12,20 @@ import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.*
 import org.gradle.api.tasks.TaskAction
 
-/**
- * TODO
- * [] Offer to pass compiler options through the configuration of gradle
- * [] Offer to pass sclajsld options throough the configuration of gradle
- * [] Make it possible to run with gradle build instead of using a custom command
- */
-
-public class CompileTask extends DefaultTask {
+class CompileTask extends DefaultTask {
     final String description = "Converts all kotlin files to sjsir, then compiles them."
 
     final String scalaJsJar = "scalajs-library_2.12-1.0.0-M2.jar"
 
     /**
+     * Input source files
+     */
+    @InputFiles
+    public Set<File> srcFiles
+
+    /**
      * Where to put the generated .sjsir and .js files
      */
-    @OutputDirectory
     public Directory outputDir
 
     /**
@@ -102,16 +101,14 @@ public class CompileTask extends DefaultTask {
             throw new GradleException("ScalaJS stdlib jar file must exist and be a directory")
     }
 
-    //private String[] k2sjsOptions = ["-verbose", "-Xallow-kotlin-package", "-d", ROOT_OUT /*, "-output", "output"*/]
-
-    // Scalajsld options
-    //private String[] linkerOptions = ["--stdlib", "lib/$SCALA_JS_JAR", ROOT_OUT, ROOT_LIB_OUT, "-c"]
-
     @TaskAction
     def run() {
 
         if (dstFile == null)
             throw new GradleException("Destination file must not be null")
+
+        if (srcFiles == null || srcFiles.isEmpty())
+            throw new GradleException("You must specify at least one source file")
 
         ArrayList<String> compilerArgs = new ArrayList<>()
         // Add user arguments
@@ -126,7 +123,7 @@ public class CompileTask extends DefaultTask {
             getCompilerOptions().split(" ").each { compilerArgs.add(it) }
 
         // Add source files
-        project.sourceSets.main.kotlin.files.each {
+        srcFiles.each {
             compilerArgs.add(it.getPath())
         }
 
@@ -151,6 +148,7 @@ public class CompileTask extends DefaultTask {
         linkerArgs.add(outputDir.getAsFile().getAbsolutePath())
         linkerArgs.add("-c")
         linkerArgs.add("-u")
+
         if (getLinkerOptions() != "")
             linkerArgs.add(getLinkerOptions())
 

@@ -9,17 +9,19 @@ class K2SJSCompilerPlugin implements Plugin<Project> {
 
     @Override
     void apply(Project project) {
+        // TODO: Configure own sourceset so that there is no need for the Kotlin plugin anymore
+        // See -> https://github.com/gradle/gradle/search?utf8=%E2%9C%93&q=GroovySourceSet&type=
         project.logger.info('Applying kotlin plugin')
         project.pluginManager.apply('kotlin')
         project.logger.info('Plugins applied')
 
-
         final tasks = project.tasks
 
-        final compile = tasks.create("k2sjs", CompileTask.class, new Action<CompileTask>() {
+        final buildTask = tasks.create("k2sjs", CompileTask.class, new Action<CompileTask>() {
             @Override
             void execute(CompileTask compileTask) {
                 // Default plugin configuration
+                compileTask.srcFiles = project.sourceSets.main.kotlin.files
                 compileTask.setKotlinHome(scala.util.Properties.envOrElse("KOTLIN_HOME", "/usr/share/kotlin" ))
                 compileTask.outputDir = project.getLayout().getBuildDirectory().dir("k2sjs").get()
                 compileTask.dstFile = new File(compileTask.outputDir.asFile.getAbsolutePath() + "/out.js")
@@ -27,6 +29,7 @@ class K2SJSCompilerPlugin implements Plugin<Project> {
                 compileTask.setLinkerOptions("")
             }
         })
-        project.logger.info(compile.name + " task added")
+
+        project.logger.info(buildTask.name + " task added")
     }
 }
