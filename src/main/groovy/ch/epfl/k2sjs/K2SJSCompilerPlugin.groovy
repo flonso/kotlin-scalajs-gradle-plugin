@@ -12,7 +12,7 @@ class K2SJSCompilerPlugin implements Plugin<Project> {
         // TODO: Configure own sourceset so that there is no need for the Kotlin plugin anymore
         // See -> https://github.com/gradle/gradle/search?utf8=%E2%9C%93&q=GroovySourceSet&type=
         project.logger.info('Applying kotlin plugin')
-        project.pluginManager.apply('kotlin')
+        project.pluginManager.apply('kotlin2js')
         project.logger.info('Plugins applied')
 
         final tasks = project.tasks
@@ -23,13 +23,27 @@ class K2SJSCompilerPlugin implements Plugin<Project> {
                 // Default plugin configuration
                 compileTask.srcFiles = project.sourceSets.main.kotlin.files
                 compileTask.setKotlinHome(scala.util.Properties.envOrElse("KOTLIN_HOME", "/usr/share/kotlin" ))
-                compileTask.outputDir = project.getLayout().getBuildDirectory().dir("k2sjs").get()
-                compileTask.dstFile = new File(compileTask.outputDir.asFile.getAbsolutePath() + "/out.js")
+                compileTask.outputDir = new File(project.getBuildDir().absolutePath + "/k2sjs")
+                compileTask.dstFile = new File(project.getBuildDir().absolutePath + "/out.js")
                 compileTask.setCompilerOptions("")
                 compileTask.setLinkerOptions("")
+                compileTask.setOptimize("fastOpt")
             }
         })
 
         project.logger.info(buildTask.name + " task added")
+
+
+        // Backup the kotlin plugin build task and replace it with ours
+        final ktBuild = tasks.getByName("build")
+        final ktActions = ktBuild.actions.collect()
+        final ktDependencies = ktBuild.dependsOn.collect()
+        ktBuild.deleteAllActions()
+        ktBuild.dependsOn.clear()
+        ktBuild.dependsOn(buildTask)
+
+        final ktOriginalBuild = tasks.create("build-original")
+        ktOriginalBuild.setActions(ktActions)
+        ktOriginalBuild.setDependsOn(ktDependencies)
     }
 }

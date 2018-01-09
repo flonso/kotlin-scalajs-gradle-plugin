@@ -1,3 +1,7 @@
+group 'ch.epfl.k2sjsir.example'
+
+version '1.0-SNAPSHOT'
+
 buildscript {
     ext.kotlin_version = '1.1.61'
     
@@ -7,15 +11,15 @@ buildscript {
 	}
 
 	dependencies {
-		classpath 'ch.epfl.k2sjs:kotlin2sjs:0.1-SNAPSHOT'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+		classpath 'ch.epfl.k2sjs:kotlin2sjs:0.1-SNAPSHOT'
 	}
 }
 
-apply plugin: "kotlin2sjs"
+apply plugin: 'kotlin2sjs'
 
 k2sjs {
-    kotlinHome = "/home/florian/.sdkman/candidates/kotlin/1.1.51/"
+    kotlinHome = "/home/florian/.sdkman/candidates/kotlin/1.1.61/"
     scalaJsLib = "/home/florian/Desktop/EPFL/Master/semester_project/Kotlin-Scala.js/src/test/resources/lib"
     compilerOptions = "-verbose -Xallow-kotlin-package"
 }

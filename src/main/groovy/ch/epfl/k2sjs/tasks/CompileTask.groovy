@@ -1,16 +1,13 @@
 package ch.epfl.k2sjs.tasks
 
 import ch.epfl.k2sjsir.K2SJSIRCompiler
+import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
-import org.gradle.api.file.Directory
-import org.gradle.api.file.FileCollection
+import org.gradle.api.tasks.*
+import org.gradle.api.tasks.OutputFile
+import org.gradle.api.tasks.TaskAction
 import org.jetbrains.kotlin.cli.common.ExitCode
 import org.scalajs.cli.Scalajsld
-
-import org.gradle.api.DefaultTask
-import org.gradle.api.tasks.OutputFile
-import org.gradle.api.tasks.*
-import org.gradle.api.tasks.TaskAction
 
 class CompileTask extends DefaultTask {
     final String description = "Converts all kotlin files to sjsir, then compiles them."
@@ -26,7 +23,7 @@ class CompileTask extends DefaultTask {
     /**
      * Where to put the generated .sjsir and .js files
      */
-    public Directory outputDir
+    public File outputDir
 
     /**
      * The file to which the final JS code will be written
@@ -53,7 +50,7 @@ class CompileTask extends DefaultTask {
 
     /**
      * The compiler still depends on the ScalaJS stdlib, this is
-     * the path to a jar.
+     * the path to its jar.
      */
     private File scalaJsLib
 
@@ -67,6 +64,35 @@ class CompileTask extends DefaultTask {
         this.scalaJsLib = tmp
 
         return this.scalaJsLib
+    }
+
+    /**
+     * The optimization level the code should be generated with
+     */
+    private String optimize
+    String getOptimize() {
+        return this.optimize
+    }
+
+    String setOptimize(String opt) {
+        if (!checkOptimizationLevel(opt))
+            throw new GradleException("Optimization level must be one of: noOpt, fastOpt or fullOpt")
+
+        this.optimize = opt
+    }
+
+    private final optimizationLevels = [
+            "noOpt": "-n",
+            "fastOpt": "-f",
+            "fullOpt": "-u"
+    ]
+
+    private boolean checkOptimizationLevel(String lvl) {
+        return optimizationLevels.containsKey(lvl)
+    }
+
+    private String getOptimizeArgument() {
+        return optimizationLevels.get(this.optimize)
     }
 
     /**
@@ -115,7 +141,7 @@ class CompileTask extends DefaultTask {
         compilerArgs.add("-kotlin-home")
         compilerArgs.add(getKotlinHome().getAbsolutePath())
         compilerArgs.add("-d")
-        compilerArgs.add(outputDir.getAsFile().getAbsolutePath())
+        compilerArgs.add(outputDir.getAbsolutePath())
         compilerArgs.add("-output")
         compilerArgs.add(dstFile.getAbsolutePath())
 
@@ -145,9 +171,9 @@ class CompileTask extends DefaultTask {
         linkerArgs.add(getScalaJsLib().getAbsolutePath() + "/" + scalaJsJar)
         linkerArgs.add("-o")
         linkerArgs.add(dstFile.getAbsolutePath())
-        linkerArgs.add(outputDir.getAsFile().getAbsolutePath())
+        linkerArgs.add(outputDir.getAbsolutePath())
         linkerArgs.add("-c")
-        linkerArgs.add("-u")
+        linkerArgs.add(getOptimizeArgument())
 
         if (getLinkerOptions() != "")
             linkerArgs.add(getLinkerOptions())
