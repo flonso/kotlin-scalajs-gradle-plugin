@@ -18,12 +18,19 @@ buildscript {
 
 apply plugin: 'kotlin2sjs'
 
-k2sjs {
-    kotlinHome = "/home/florian/.sdkman/candidates/kotlin/1.1.61/"
-    scalaJsLib = "/home/florian/Desktop/EPFL/Master/semester_project/Kotlin-Scala.js/src/test/resources/lib"
-    compilerOptions = "-verbose -Xallow-kotlin-package"
+
+repositories {
+    mavenCentral()
 }
 
+dependencies {
+    compile 'org.scala-js:scalajs-library_2.12:1.0.0-M2'
+}
+
+k2sjs {
+    kotlinHome = "/home/florian/.sdkman/candidates/kotlin/1.1.61/"
+    compilerOptions = "-verbose -Xallow-kotlin-package"
+}
 
 sourceSets {
     main {

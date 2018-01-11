@@ -4,7 +4,6 @@ apply plugin: 'groovy'
 apply plugin: 'maven'
 apply plugin: 'maven-publish'
 
-
 // Project information
 group = "ch.epfl.k2sjs"
 version = "0.1-SNAPSHOT"

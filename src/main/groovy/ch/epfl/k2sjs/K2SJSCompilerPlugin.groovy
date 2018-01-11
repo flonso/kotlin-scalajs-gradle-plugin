@@ -4,6 +4,7 @@ import ch.epfl.k2sjs.tasks.CompileTask
 import org.gradle.api.Action
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.api.Task
 
 class K2SJSCompilerPlugin implements Plugin<Project> {
 
@@ -17,19 +18,21 @@ class K2SJSCompilerPlugin implements Plugin<Project> {
 
         final tasks = project.tasks
 
-        final buildTask = tasks.create("k2sjs", CompileTask.class, new Action<CompileTask>() {
+        final buildAction = new Action<CompileTask>() {
             @Override
             void execute(CompileTask compileTask) {
                 // Default plugin configuration
                 compileTask.srcFiles = project.sourceSets.main.kotlin.files
                 compileTask.setKotlinHome(scala.util.Properties.envOrElse("KOTLIN_HOME", "/usr/share/kotlin" ))
                 compileTask.outputDir = new File(project.getBuildDir().absolutePath + "/k2sjs")
-                compileTask.dstFile = new File(project.getBuildDir().absolutePath + "/out.js")
+                compileTask.setDstFile(project.getBuildDir().absolutePath + "/" + project.getProjectDir().name +".js")
                 compileTask.setCompilerOptions("")
                 compileTask.setLinkerOptions("")
                 compileTask.setOptimize("fastOpt")
             }
-        })
+        }
+
+        final buildTask = tasks.create("k2sjs", CompileTask.class, buildAction)
 
         project.logger.info(buildTask.name + " task added")
 
@@ -42,6 +45,7 @@ class K2SJSCompilerPlugin implements Plugin<Project> {
         ktBuild.dependsOn.clear()
         ktBuild.dependsOn(buildTask)
 
+        // Keep access to the original
         final ktOriginalBuild = tasks.create("build-original")
         ktOriginalBuild.setActions(ktActions)
         ktOriginalBuild.setDependsOn(ktDependencies)

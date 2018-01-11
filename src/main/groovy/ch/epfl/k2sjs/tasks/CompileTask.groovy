@@ -12,8 +12,6 @@ import org.scalajs.cli.Scalajsld
 class CompileTask extends DefaultTask {
     final String description = "Converts all kotlin files to sjsir, then compiles them."
 
-    final String scalaJsJar = "scalajs-library_2.12-1.0.0-M2.jar"
-
     /**
      * Input source files
      */
@@ -21,7 +19,7 @@ class CompileTask extends DefaultTask {
     public Set<File> srcFiles
 
     /**
-     * Where to put the generated .sjsir and .js files
+     * Where to put the generated .sjsir files
      */
     public File outputDir
 
@@ -30,6 +28,19 @@ class CompileTask extends DefaultTask {
      */
     @OutputFile
     public File dstFile
+
+    File getDstFile() {
+        return this.dstFile
+    }
+
+    File setDstFile(String path) {
+        File tmp = new File(path)
+        assertIsFileAndHasJsExtension(tmp)
+
+        this.dstFile = tmp
+
+        return this.dstFile
+    }
 
     /**
      * The path to Kotlin install directory
@@ -55,13 +66,10 @@ class CompileTask extends DefaultTask {
     private File scalaJsLib
 
     File getScalaJsLib() {
-        return this.scalaJsLib
-    }
-
-    File setScalaJsLib(String path) {
-        File tmp = new File(path)
-        assertFileExistsAndIsDirectory(tmp)
-        this.scalaJsLib = tmp
+        if (this.scalaJsLib == null) {
+            final lib = project.configurations.compile.filter { it.getAbsolutePath().contains("scalajs-library")}
+            this.scalaJsLib = new File(lib.getSingleFile().getAbsolutePath())
+        }
 
         return this.scalaJsLib
     }
@@ -127,6 +135,11 @@ class CompileTask extends DefaultTask {
             throw new GradleException("ScalaJS stdlib jar file must exist and be a directory")
     }
 
+    private static void assertIsFileAndHasJsExtension(File f) {
+        if (!f.isFile() || !f.getAbsolutePath().endsWith(".js"))
+            throw new GradleException("The destination file must be a .js file")
+    }
+
     @TaskAction
     def run() {
 
@@ -168,7 +181,7 @@ class CompileTask extends DefaultTask {
         // Prepare linker options
         ArrayList<String> linkerArgs = new ArrayList<>()
         linkerArgs.add("--stdlib")
-        linkerArgs.add(getScalaJsLib().getAbsolutePath() + "/" + scalaJsJar)
+        linkerArgs.add(getScalaJsLib().getAbsolutePath())
         linkerArgs.add("-o")
         linkerArgs.add(dstFile.getAbsolutePath())
         linkerArgs.add(outputDir.getAbsolutePath())
