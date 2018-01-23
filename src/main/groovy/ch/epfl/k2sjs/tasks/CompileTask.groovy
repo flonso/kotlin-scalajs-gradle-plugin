@@ -136,8 +136,8 @@ class CompileTask extends DefaultTask {
     }
 
     private static void assertIsFileAndHasJsExtension(File f) {
-        if (!f.isFile() || !f.getAbsolutePath().endsWith(".js"))
-            throw new GradleException("The destination file must be a .js file")
+        if (!f.getAbsolutePath().endsWith(".js"))
+            throw new GradleException("The destination file must be a .js file but got " + f.getAbsolutePath())
     }
 
     @TaskAction
@@ -189,13 +189,17 @@ class CompileTask extends DefaultTask {
         linkerArgs.add(getOptimizeArgument())
 
         if (getLinkerOptions() != "")
-            linkerArgs.add(getLinkerOptions())
+            getLinkerOptions().split(" ").each { linkerArgs.add(it) }
 
         project.logger.info("Linker will be run with arguments $linkerArgs")
 
         project.logger.info("Running ScalaJS linker...")
         tmp = linkerArgs.toArray() as String[]
         Scalajsld.main(tmp)
+
+        if (!getDstFile().exists())
+            throw new GradleException("Linking failed. See log above for details. (Use --info)")
+
         project.logger.info("\nDone with the ScalaJS linker.")
     }
 
