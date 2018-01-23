@@ -28,7 +28,8 @@ dependencies {
 }
 
 k2sjs {
-    kotlinHome = "/home/florian/.sdkman/candidates/kotlin/1.1.61/"
+    linkerOptions = "-mm Main.main"
+    kotlinHome = "/usr/share/kotlin"
     compilerOptions = "-verbose -Xallow-kotlin-package"
 }
 
